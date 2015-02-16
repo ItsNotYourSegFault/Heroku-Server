@@ -1,5 +1,5 @@
 {
-  "name": "rentalcar-server",
+  "name": "Heroku-Server",
   "version": "0.0.1",
   "description": "The server for the car rental application, 'RentalCar'",
   "author": "Kendal Harland <kendaljharland@gmail.com>",
