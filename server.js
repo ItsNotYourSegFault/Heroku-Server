@@ -4,18 +4,18 @@ var express    = require('express'),
     mysql      = require('mysql'),
     bodyParser = require('body-parser'), // for POST 
     app        = express(),
-    connpool = mysql.createPool({
-      host     : 'us-cdbr-iron-east-01.cleardb.net',
-      user     : "b5f80331b8bbae",
-      password : "3c1aad8a"
+    connpool   = mysql.createPool({
+      host     : process.env.HOST,
+      user     : process.env.USER,
+      password : process.env.PASS,
     });
 
-app.set('port', 3000);
+app.set('port', process.env.PORT || 3000);
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use('/', function(req, res, next) {
-  res.type('Content-type', 'application/json'); // This server returns only JSON requests
-  next();
-});
+// app.use('/', function(req, res, next) {
+//   res.type('Content-type', 'application/json'); // This server returns only JSON requests
+//   next();
+// });
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Utility functions
