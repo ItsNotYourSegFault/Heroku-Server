@@ -5,7 +5,7 @@ var express    = require('express'),
     bodyParser = require('body-parser'), // for POST 
     app        = express(),
     connpool = mysql.createPool({
-      host     : 'us-cdbr-iron-east-01.cleardb.net'
+      host     : 'us-cdbr-iron-east-01.cleardb.net',
       user     : "b5f80331b8bbae",
       password : "3c1aad8a"
     });
