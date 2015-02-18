@@ -42,7 +42,7 @@ function handleMysqlQueryErr(err, res) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// Server paths
+/// Test methods
 ///////////////////////////////////////////////////////////////////////////////
 
 app.get('/mysql/connected', function(req, res) { 
@@ -93,6 +93,36 @@ app.delete('/json/test', function(req, res) {
       res.status(200);
       res.type('json');
       res.send("{'fname':'kendal', 'lname':'harland', 'age':'21'}");
+    }
+  })
+});
+
+app.post('/json/test', function(req, res) {
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      console.log("> responded to post json/test.");
+      res.status(200);
+      res.type('json');
+      res.send(JSON.stringify(req.body));
+    }
+  })
+});
+
+///////////////////////////////////////////////////////////////////////////////
+/// Server paths
+///////////////////////////////////////////////////////////////////////////////
+
+app.post('/create/reservation', function(req, res) {
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      console.log("> responded to post create/reservation.");
+      res.status(200);
+      res.type('json');
+      res.send(JSON.stringify(req.body));
     }
   })
 });
