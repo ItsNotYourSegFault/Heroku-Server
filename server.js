@@ -1,6 +1,7 @@
 "use strict";
 
 var express    = require('express'),
+    _          = require('underscore'),
     mysql      = require('mysql'),
     bodyParser = require('body-parser'), // for POST 
     app        = express(),
@@ -8,6 +9,7 @@ var express    = require('express'),
       host     : process.env.HOST,
       user     : process.env.USER,
       password : process.env.PASS,
+      database : "heroku_06f18f6ca1aa44d"
     });
 
 app.set('port', process.env.PORT || 3000);
@@ -22,6 +24,10 @@ function _error(e) { console.error('x error:', e); }
 function _warning(w) { console.error('! warning:', w); }
 
 function _debug(m) { console.log('> debug: ', m); }
+
+function _successMsg(msg) { return "{status: 1, response: "+msg+"}" }
+
+function _errorMsg(msg) { return "{status: -1, response: "+msg+"}" }
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Error handlers
@@ -115,16 +121,58 @@ app.post('/json/test', function(req, res) {
 ///////////////////////////////////////////////////////////////////////////////
 
 app.post('/create/reservation', function(req, res) {
+  console.log("> responded to post create/reservation.");
   connpool.getConnection(function(err, conn) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to post create/reservation.");
-      res.status(200);
-      res.type('json');
-      res.send(JSON.stringify(req.body));
+      var fields  = _.unzip(_.pairs(req.body)),
+          columns = fields[0].join(','),
+          values  = fields[1].join(','),
+          query = "INSERT INTO reservations("+columns+") VALUES("+values+");";
+      conn.query(query, function(err, resp) {
+        conn.release();
+        if (err) {
+          handleMysqlQueryErr(err, res);
+        } else {
+          res.status(200);
+          res.type('json');
+          res.send(_successMsg("reservation created."));
+        }
+      });
     }
-  })
+  });
+});
+
+
+app.get('/location/vehicles/:locationid/', function(req, res) {
+  console.log("> responded to get location/vehilces");
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      var query = "SELECT * FROM vehicles WHERE locationid=?;";
+      console.log(query, req.params);
+      conn.query(query, [req.params.locationid], function(err, resp){
+        if (err) {
+          handleMysqlQueryErr(err, resp);
+        } else {
+          res.status(200);
+          res.type('json');
+          console.log("----------------------------------------------");
+          console.log("----------------------------------------------");
+          console.log("----------------------------------------------");
+          console.log(resp);
+          console.log("----------------------------------------------");
+          console.log("----------------------------------------------");
+          console.log("----------------------------------------------");
+          console.log(resp);
+          res.send(resp);
+        }
+        conn.release();
+      }); 
+    }
+  });
 });
 
 // app.get('/get/user/events/:userid', function(req, res) {
