@@ -19,6 +19,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 /// Utility functions
 ///////////////////////////////////////////////////////////////////////////////
 
+var MYSQL_EMPTY_RESULT = "{}";
+
 function _error(e) { console.error('x error:', e); }
 
 function _warning(w) { console.error('! warning:', w); }
@@ -120,6 +122,32 @@ app.post('/json/test', function(req, res) {
 /// Server paths
 ///////////////////////////////////////////////////////////////////////////////
 
+app.post('/user/login/', function(req, res) {
+  console.log("> responded to /user/login");
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      var query = "SELECT * FROM users WHERE username=? AND password=?;";
+      conn.query(query, [req.body.username, req.body.password], function(err, resp) {
+        conn.release();
+        if (err) {
+          handleMysqlQueryErr(err, res);
+        } else {
+          console.log(req.body);
+          res.status(200);
+          res.type('json');
+          if (resp.length == 0) {
+            res.send(MYSQL_EMPTY_RESULT);  
+          } else {
+            res.send(resp[0]);
+          }
+        }
+      });
+    }
+  });
+});
+
 app.post('/create/reservation', function(req, res) {
   console.log("> responded to post create/reservation.");
   connpool.getConnection(function(err, conn) {
@@ -129,7 +157,7 @@ app.post('/create/reservation', function(req, res) {
       var fields  = _.unzip(_.pairs(req.body)),
           columns = fields[0].join(','),
           values  = fields[1].join(','),
-          query = "INSERT INTO reservations("+columns+") VALUES("+values+");";
+          query   = "INSERT INTO reservations("+columns+") VALUES("+values+");";
       conn.query(query, function(err, resp) {
         conn.release();
         if (err) {
@@ -152,70 +180,19 @@ app.get('/location/vehicles/:locationid/', function(req, res) {
       handleMysqlConnErr(err, res);
     } else {
       var query = "SELECT * FROM vehicles WHERE locationid=?;";
-      console.log(query, req.params);
       conn.query(query, [req.params.locationid], function(err, resp){
+        conn.release();
         if (err) {
           handleMysqlQueryErr(err, resp);
         } else {
           res.status(200);
           res.type('json');
-          console.log("----------------------------------------------");
-          console.log("----------------------------------------------");
-          console.log("----------------------------------------------");
-          console.log(resp);
-          console.log("----------------------------------------------");
-          console.log("----------------------------------------------");
-          console.log("----------------------------------------------");
-          console.log(resp);
           res.send(resp);
         }
-        conn.release();
       }); 
     }
   });
 });
-
-// app.get('/get/user/events/:userid', function(req, res) {
-//   connpool.getConnection(function (err, conn) {
-//     if (err) {
-//       handleMysqlConnErr(err, res);
-//     } else {
-//       var qstr = "call getUserEvents(?);";
-//       var args = [req.params.userid];
-//       conn.query(qstr, args, function(err, rows, fields) {
-//         conn.release();
-//         if (err) {
-//           handleMysqlQueryErr(err, res);
-//         } else {
-//           res.status(200);
-//           res.type('json');
-//           res.send({text: rows[0], error: ''});
-//         }
-//       });
-//     }
-//   });
-// });
-
-// app.get('/create/user/group/:userid/:group', function (req, res) {
-//   connpool.getConnection(function (err, conn) {
-//     if (err) {
-//       handleMysqlConnErr(err, res);
-//     } else {
-//       var qstr = "call createUserGroup(?,?);";
-//       var args = [req.params.userid, req.params.group];
-//       conn.query(qstr, args, function(err, rows, fields) {
-//         conn.release();
-//         if (err) {
-//           handleMysqlQueryErr(err, res);
-//         } else {
-//           res.status(200);
-//           res.type('json');
-//           res.send({text: rows[0], error: ''});
-//         }
-//       });
-//     }
-//   });
-// });
 
 app.listen(app.get('port'));
 console.log("server running on port:", app.get('port'));
