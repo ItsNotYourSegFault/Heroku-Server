@@ -10,7 +10,7 @@ var express    = require('express'),
       user     : process.env.USER,
       password : process.env.PASS,
       database : "heroku_06f18f6ca1aa44d"
-    });
+    }); 
 
 app.set('port', process.env.PORT || 3000);
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -173,8 +173,8 @@ app.post('/create/reservation', function(req, res) {
 });
 
 
-app.get('/location/vehicles/:locationid/', function(req, res) {
-  console.log("> responded to get location/vehilces");
+app.get('/location/vehicles/:locationid', function(req, res) {
+  console.log("> responded to get location/vehicles");
   connpool.getConnection(function(err, conn) {
     if (err) {
       handleMysqlConnErr(err, res);
@@ -187,6 +187,32 @@ app.get('/location/vehicles/:locationid/', function(req, res) {
         } else {
           res.status(200);
           res.type('json');
+          res.send(resp);
+        }
+      }); 
+    }
+  });
+});
+
+
+app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', function(req, res) {
+  console.log("> responded to get location/reservations/class/count");
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      var query = "SELECT DISTINCT class_name as class, COUNT(class_name) as count FROM reservations WHERE " +
+                  "locationid = ? AND startdate <= ? AND enddate >= ? " +
+                  "GROUP BY class_name;"
+      var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
+      conn.query(query, args, function(err, resp){
+        conn.release();
+        if (err) {
+          handleMysqlQueryErr(err, resp);
+        } else {
+          res.status(200);
+          res.type('json');
+          console.log("resp: ", resp);
           res.send(resp);
         }
       }); 
