@@ -37,14 +37,14 @@ function _errorMsg(msg) { return "{status: -1, response: "+msg+"}" }
 
 function handleMysqlConnErr(err, res) {
   _error(err);
-  res.statusCode = 503;
+  res.status(503);
   res.type('json');
   res.send({text: '', error: err});
 }
 
 function handleMysqlQueryErr(err, res) {
   _error(err);
-  res.statusCode = 500;
+  res.status(500);
   res.type('json');
   res.send({text: '', error: err});
 }
@@ -183,7 +183,7 @@ app.get('/location/vehicles/:locationid', function(req, res) {
       conn.query(query, [req.params.locationid], function(err, resp){
         conn.release();
         if (err) {
-          handleMysqlQueryErr(err, resp);
+          handleMysqlQueryErr(err, res);
         } else {
           res.status(200);
           res.type('json');
@@ -219,6 +219,55 @@ app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', fu
     }
   });
 });
+
+
+app.get('/location/vehicles/class/count/:locationId', function(req, res) {
+  console.log("> responded to get location/vehicles/class/count");
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      var query = "SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE " +
+                  "locationid = ? GROUP BY class;";
+      var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
+      conn.query(query, args, function(err, resp){
+        conn.release();
+        if (err) {
+          handleMysqlQueryErr(err, res);
+        } else {
+          res.status(200);
+          res.type('json');
+          console.log("resp: ", resp);
+          res.send(resp);
+        }
+      }); 
+    }
+  });
+});
+
+
+app.get('/location/taxRate/:locationId', function(req, res) {
+  console.log("> responded to get location/taxRate");
+  connpool.getConnection(function(err, conn) {
+    if (err) {
+      handleMysqlConnErr(err, res);
+    } else {
+      var query = "SELECT rate FROM location WHERE locationid = ?";
+      var args = [parseInt(req.params.locationId)];
+      conn.query(query, args, function(err, resp){
+        conn.release();
+        if (err) {
+          handleMysqlQueryErr(err, res);
+        } else {
+          res.status(200);
+          res.type('json');
+          res.send(resp[0]);
+        }
+      }); 
+    }
+  });
+});
+
 
 app.listen(app.get('port'));
 console.log("server running on port:", app.get('port'));
