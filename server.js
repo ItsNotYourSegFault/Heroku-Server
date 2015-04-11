@@ -58,7 +58,6 @@ app.get('/mysql/connected', function(req, res) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to mysql/connected");
       res.status(200);
       res.type('json');
       res.send("{'connected':'true'}");
@@ -71,7 +70,6 @@ app.get('/json/test', function(req, res) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to get json/test.");
       res.status(200);
       res.type('json');
       res.send("{'fname':'kendal', 'lname':'harland', 'age':'21'}");
@@ -84,7 +82,6 @@ app.put('/json/test', function(req, res) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to put json/test.");
       res.status(200);
       res.type('json');
       res.send("{'fname':'kendal', 'lname':'harland', 'age':'21'}");
@@ -97,7 +94,6 @@ app.delete('/json/test', function(req, res) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to delete json/test.");
       res.status(200);
       res.type('json');
       res.send("{'fname':'kendal', 'lname':'harland', 'age':'21'}");
@@ -110,7 +106,6 @@ app.post('/json/test', function(req, res) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      console.log("> responded to post json/test.");
       res.status(200);
       res.type('json');
       res.send(JSON.stringify(req.body));
@@ -123,7 +118,6 @@ app.post('/json/test', function(req, res) {
 ///////////////////////////////////////////////////////////////////////////////
 
 app.post('/user/login/', function(req, res) {
-  console.log("> responded to /user/login");
   connpool.getConnection(function(err, conn) {
     if (err) {
       handleMysqlConnErr(err, res);
@@ -134,7 +128,6 @@ app.post('/user/login/', function(req, res) {
         if (err) {
           handleMysqlQueryErr(err, res);
         } else {
-          console.log(req.body);
           res.status(200);
           res.type('json');
           if (resp.length == 0) {
@@ -149,7 +142,6 @@ app.post('/user/login/', function(req, res) {
 });
 
 app.post('/create/reservation', function(req, res) {
-  console.log("> responded to post create/reservation.");
   connpool.getConnection(function(err, conn) {
     if (err) {
       handleMysqlConnErr(err, res);
@@ -173,101 +165,74 @@ app.post('/create/reservation', function(req, res) {
 });
 
 
-app.get('/location/vehicles/:locationid', function(req, res) {
-  console.log("> responded to get location/vehicles");
+function handleRequest(query, args, req, res, callback) {
+  console.log("ROUTE:", req._parsedUrl.path);
   connpool.getConnection(function(err, conn) {
     if (err) {
       handleMysqlConnErr(err, res);
     } else {
-      var query = "SELECT * FROM vehicles WHERE locationid=?;";
-      conn.query(query, [req.params.locationid], function(err, resp){
+      conn.query(query, args, function(err, resp) {
         conn.release();
         if (err) {
           handleMysqlQueryErr(err, res);
         } else {
           res.status(200);
           res.type('json');
-          res.send(resp);
+          callback(resp);
         }
-      }); 
+      });
     }
+  });
+}
+
+app.get('/location/vehicles/:locationId', function(req, res) {
+  var query = "SELECT * FROM vehicles WHERE locationid=?;";
+  var args = [req.params.locationId];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result);
   });
 });
 
-
-app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', function(req, res) {
-  console.log("> responded to get location/reservations/class/count");
-  connpool.getConnection(function(err, conn) {
-    if (err) {
-      handleMysqlConnErr(err, res);
-    } else {
-      var query = "SELECT DISTINCT class_name as class, COUNT(class_name) as count FROM reservations WHERE " +
-                  "locationid = ? AND startdate <= ? AND enddate >= ? " +
-                  "GROUP BY class_name;"
-      var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
-      conn.query(query, args, function(err, resp){
-        conn.release();
-        if (err) {
-          handleMysqlQueryErr(err, resp);
-        } else {
-          res.status(200);
-          res.type('json');
-          console.log("resp: ", resp);
-          res.send(resp);
-        }
-      }); 
-    }
+app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', 
+  function(req, res) {
+    var query = "SELECT DISTINCT " +
+        " class_name as class, " +
+        " COUNT(class_name) as count " +
+        "FROM reservations " +
+        "WHERE locationid = ? " +
+        " AND startdate <= ? " + 
+        " AND enddate >= ? " +
+        "GROUP BY class_name;";
+  var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result);
   });
 });
-
 
 app.get('/location/vehicles/class/count/:locationId', function(req, res) {
-  console.log("> responded to get location/vehicles/class/count");
-  connpool.getConnection(function(err, conn) {
-    if (err) {
-      handleMysqlConnErr(err, res);
-    } else {
-      var query = "SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE " +
-                  "locationid = ? GROUP BY class;";
-      var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
-      conn.query(query, args, function(err, resp){
-        conn.release();
-        if (err) {
-          handleMysqlQueryErr(err, res);
-        } else {
-          res.status(200);
-          res.type('json');
-          console.log("resp: ", resp);
-          res.send(resp);
-        }
-      }); 
-    }
+  var query = "SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE " +
+              "locationid = ? GROUP BY class;";
+  var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result);
   });
 });
 
-
-app.get('/location/taxRate/:locationId', function(req, res) {
-  console.log("> responded to get location/taxRate");
-  connpool.getConnection(function(err, conn) {
-    if (err) {
-      handleMysqlConnErr(err, res);
-    } else {
-      var query = "SELECT rate FROM location WHERE locationid = ?";
-      var args = [parseInt(req.params.locationId)];
-      conn.query(query, args, function(err, resp){
-        conn.release();
-        if (err) {
-          handleMysqlQueryErr(err, res);
-        } else {
-          res.status(200);
-          res.type('json');
-          res.send(resp[0]);
-        }
-      }); 
-    }
+app.get('/location/taxRate/:locationId', function (req, res) {
+  var query = "SELECT rate FROM location WHERE locationid = ?";
+  var args = [parseInt(req.params.locationId)];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result[0]);
   });
 });
 
+app.get('/vehicle/class/rates/:className', function (req, res) {
+  var query = "SELECT * FROM vehicleclass WHERE name = ?";
+  var args = [decodeURI(req.params.className)];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result[0]);
+  });
+});
 
 app.listen(app.get('port'));
 console.log("server running on port:", app.get('port'));
