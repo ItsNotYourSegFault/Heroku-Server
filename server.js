@@ -185,6 +185,18 @@ function handleRequest(query, args, req, res, callback) {
   });
 }
 
+app.get('/user/reservations/:customerId', function(req, res) {
+  var query = "SELECT * FROM reservations WHERE customerid = ?;";
+  var args = [req.params.customerId];
+  handleRequest(query, args, req, res, function(result) {
+    // convert all properties to string
+    for (var i=0; i<result.length; i++)
+      for (var key in result[i])
+        result[i][key] = result[i][key].toString();
+    res.send(result);
+  });
+});
+
 app.get('/location/vehicles/:locationId', function(req, res) {
   var query = "SELECT * FROM vehicles WHERE locationid=?;";
   var args = [req.params.locationId];
@@ -195,13 +207,8 @@ app.get('/location/vehicles/:locationId', function(req, res) {
 
 app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', 
   function(req, res) {
-    var query = "SELECT DISTINCT " +
-        " class_name as class, " +
-        " COUNT(class_name) as count " +
-        "FROM reservations " +
-        "WHERE locationid = ? " +
-        " AND startdate <= ? " + 
-        " AND enddate >= ? " +
+    var query = "SELECT DISTINCT class_name as class, COUNT(class_name) as count " +
+        "FROM reservations WHERE locationid = ? AND startdate <= ? AND enddate >= ? " +
         "GROUP BY class_name;";
   var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
   handleRequest(query, args, req, res, function(result) {
