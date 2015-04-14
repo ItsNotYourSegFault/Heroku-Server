@@ -233,6 +233,14 @@ app.get('/location/taxRate/:locationId', function (req, res) {
   });
 });
 
+app.get('/vehicles', function (req, res) {
+  var query = "SELECT * FROM vehicles";
+  var args = [];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(result);
+  });
+});
+
 app.get('/vehicle/class/rates/:className', function (req, res) {
   var query = "SELECT * FROM vehicleclass WHERE name = ?";
   var args = [decodeURI(req.params.className)];
