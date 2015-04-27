@@ -249,5 +249,13 @@ app.get('/vehicle/class/rates/:className', function (req, res) {
   });
 });
 
+
+app.get('/reservations', function (req, res) {
+  var query = "SELECT * FROM reservations";
+  handleRequest(query, null, req, res, function(result) {
+    res.send(result);
+  });
+});
+
 app.listen(app.get('port'));
 console.log("server running on port:", app.get('port'));
