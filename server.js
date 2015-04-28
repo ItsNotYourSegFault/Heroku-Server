@@ -141,29 +141,6 @@ app.post('/user/login/', function(req, res) {
   });
 });
 
-app.post('/create/reservation', function(req, res) {
-  connpool.getConnection(function(err, conn) {
-    if (err) {
-      handleMysqlConnErr(err, res);
-    } else {
-      var fields  = _.unzip(_.pairs(req.body)),
-          columns = fields[0].join(','),
-          values  = fields[1].join(','),
-          query   = "INSERT INTO reservations("+columns+") VALUES("+values+");";
-      conn.query(query, function(err, resp) {
-        conn.release();
-        if (err) {
-          handleMysqlQueryErr(err, res);
-        } else {
-          res.status(200);
-          res.type('json');
-          res.send(_successMsg("reservation created."));
-        }
-      });
-    }
-  });
-});
-
 
 function handleRequest(query, args, req, res, callback) {
   console.log("ROUTE:", req._parsedUrl.path);
@@ -186,7 +163,7 @@ function handleRequest(query, args, req, res, callback) {
 }
 
 app.get('/user/reservations/:customerId', function(req, res) {
-  var query = "SELECT * FROM reservations WHERE customerid = ?;";
+  var query = "SELECT * FROM reservations WHERE customerId = ?;";
   var args = [req.params.customerId];
   handleRequest(query, args, req, res, function(result) {
     // convert all properties to string
@@ -198,7 +175,7 @@ app.get('/user/reservations/:customerId', function(req, res) {
 });
 
 app.get('/location/vehicles/:locationId', function(req, res) {
-  var query = "SELECT * FROM vehicles WHERE locationid=?;";
+  var query = "SELECT * FROM vehicles WHERE locationId=?;";
   var args = [req.params.locationId];
   handleRequest(query, args, req, res, function(result) {
     res.send(result);
@@ -207,9 +184,9 @@ app.get('/location/vehicles/:locationId', function(req, res) {
 
 app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', 
   function(req, res) {
-    var query = "SELECT DISTINCT class_name as class, COUNT(class_name) as count " +
-        "FROM reservations WHERE locationid = ? AND startdate <= ? AND enddate >= ? " +
-        "GROUP BY class_name;";
+    var query = "SELECT DISTINCT vehicleClass as class, COUNT(vehicleClass) as count " +
+        "FROM reservations WHERE locationId = ? AND startDate <= ? AND endDate >= ? " +
+        "GROUP BY vehicleClass;";
   var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
   handleRequest(query, args, req, res, function(result) {
     res.send(result);
@@ -218,7 +195,7 @@ app.get('/location/reservations/class/count/:locationId/:startDate/:endDate',
 
 app.get('/location/vehicles/class/count/:locationId', function(req, res) {
   var query = "SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE " +
-              "locationid = ? GROUP BY class;";
+              "locationId = ? GROUP BY class;";
   var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
   handleRequest(query, args, req, res, function(result) {
     res.send(result);
@@ -226,7 +203,7 @@ app.get('/location/vehicles/class/count/:locationId', function(req, res) {
 });
 
 app.get('/location/taxRate/:locationId', function (req, res) {
-  var query = "SELECT rate FROM location WHERE locationid = ?";
+  var query = "SELECT rate FROM location WHERE locationId = ?";
   var args = [parseInt(req.params.locationId)];
   handleRequest(query, args, req, res, function(result) {
     res.send(result[0]);
@@ -241,9 +218,9 @@ app.get('/vehicles', function (req, res) {
   });
 });
 
-app.get('/vehicle/class/rates/:className', function (req, res) {
+app.get('/vehicle/class/rates/:vehicleClass', function (req, res) {
   var query = "SELECT * FROM vehicleclass WHERE name = ?";
-  var args = [decodeURI(req.params.className)];
+  var args = [decodeURI(req.params.vehicleClass)];
   handleRequest(query, args, req, res, function(result) {
     res.send(result[0]);
   });
@@ -254,6 +231,21 @@ app.get('/reservations', function (req, res) {
   var query = "SELECT * FROM reservations";
   handleRequest(query, null, req, res, function(result) {
     res.send(result);
+  });
+});
+
+app.post('/reservation', function(req, res) {
+  var fields  = _.unzip(_.pairs(req.body));  
+  var q = "?";
+  for (var i=0; i<fields[0].length-1; i++)
+    q = "?," + q;
+
+  var query = "INSERT INTO reservations(startDate, waiver, totalCost, \
+    accident, locationId, endDate, childSeat, roadside, ktag, customerId, \
+    ccn, vehicleClass, gps, salesrepId) VALUES("+q+");";
+  var args = fields[1];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(JSON.stringify(result.affectedRows));
   });
 });
 
