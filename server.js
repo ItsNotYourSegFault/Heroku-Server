@@ -117,31 +117,6 @@ app.post('/json/test', function(req, res) {
 /// Server paths
 ///////////////////////////////////////////////////////////////////////////////
 
-app.post('/user/login/', function(req, res) {
-  connpool.getConnection(function(err, conn) {
-    if (err) {
-      handleMysqlConnErr(err, res);
-    } else {
-      var query = "SELECT * FROM users WHERE username=? AND password=?;";
-      conn.query(query, [req.body.username, req.body.password], function(err, resp) {
-        conn.release();
-        if (err) {
-          handleMysqlQueryErr(err, res);
-        } else {
-          res.status(200);
-          res.type('json');
-          if (resp.length == 0) {
-            res.send(MYSQL_EMPTY_RESULT);  
-          } else {
-            res.send(resp[0]);
-          }
-        }
-      });
-    }
-  });
-});
-
-
 function handleRequest(query, args, req, res, callback) {
   console.log("ROUTE:", req._parsedUrl.path);
   connpool.getConnection(function(err, conn) {
@@ -161,6 +136,33 @@ function handleRequest(query, args, req, res, callback) {
     }
   });
 }
+
+app.post('/user', function(req, res) {
+  var query = "\
+    INSERT INTO users(username, password, address, licenseNumber, \
+    type, firstname, lastname, email, phoneNumber, birthdate) \
+    VALUES(?,?,?,?,?,?,?,?,?,?);";
+  var args = [
+    req.body.username, req.body.password, req.body.address, 
+    req.body.licenseNumber, req.body.userType, req.body.firstname, 
+    req.body.lastname, req.body.email, req.body.phoneNumber, req.body.birthdate
+  ];
+  handleRequest(query, args, req, res, function(result) {
+    res.send(JSON.stringify(result.affectedRows));
+  });
+});
+
+app.post('/user/login', function(req, res) {
+  var query = "SELECT * FROM users WHERE username=? AND password=?;";
+  var args = [req.body.username, req.body.password];
+  handleRequest(query, args, req, res, function(result) {
+    if (result.length == 0) {
+      res.send(MYSQL_EMPTY_RESULT);
+    } else {
+      res.send(resp[0]);
+    }
+  });
+});
 
 app.get('/user/reservations/:customerId', function(req, res) {
   var query = "SELECT * FROM reservations WHERE customerId = ?;";
@@ -184,19 +186,24 @@ app.get('/location/vehicles/:locationId', function(req, res) {
 
 app.get('/location/reservations/class/count/:locationId/:startDate/:endDate', 
   function(req, res) {
-    var query = "SELECT DISTINCT vehicleClass as class, COUNT(vehicleClass) as count " +
-        "FROM reservations WHERE locationId = ? AND startDate <= ? AND endDate >= ? " +
-        "GROUP BY vehicleClass;";
-  var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
-  handleRequest(query, args, req, res, function(result) {
-    res.send(result);
-  });
+    var query = "\
+      SELECT DISTINCT vehicleClass as class, COUNT(vehicleClass) as count \
+      FROM reservations WHERE locationId = ? \
+        AND startDate <= ? AND endDate >= ? \
+      GROUP BY vehicleClass;";
+    var args = [parseInt(req.params.locationId), req.params.startDate,
+      req.params.endDate];
+    handleRequest(query, args, req, res, function(result) {
+      res.send(result);
+    });
 });
 
 app.get('/location/vehicles/class/count/:locationId', function(req, res) {
-  var query = "SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE " +
-              "locationId = ? GROUP BY class;";
-  var args = [parseInt(req.params.locationId), req.params.startDate, req.params.endDate];
+  var query = "\
+    SELECT DISTINCT class, COUNT(class) as count FROM vehicles WHERE \
+    locationId = ? GROUP BY class;";
+  var args = [parseInt(req.params.locationId), req.params.startDate, 
+    req.params.endDate];
   handleRequest(query, args, req, res, function(result) {
     res.send(result);
   });
@@ -235,17 +242,29 @@ app.get('/reservations', function (req, res) {
 });
 
 app.post('/reservation', function(req, res) {
-  var fields  = _.unzip(_.pairs(req.body));  
-  var q = "?";
-  for (var i=0; i<fields[0].length-1; i++)
-    q = "?," + q;
-
-  var query = "INSERT INTO reservations(startDate, waiver, totalCost, \
+  var fields = _.unzip(_.pairs(req.body));  
+  var q = "?,?,?,?,?,?,?,?,?,?,?,?,?,?";
+  var query = "\
+    INSERT INTO reservations(startDate, waiver, totalCost, \
     accident, locationId, endDate, childSeat, roadside, ktag, customerId, \
     ccn, vehicleClass, gps, salesrepId) VALUES("+q+");";
   var args = fields[1];
   handleRequest(query, args, req, res, function(result) {
     res.send(JSON.stringify(result.affectedRows));
+  });
+});
+
+app.get('/equipment', function(req, res) {
+  var query = "SELECT * FROM equipment";
+  handleRequest(query, null, req, res, function(result) {
+    res.send(result);
+  });
+});
+
+app.get('/equipment/counts', function(req, res) {
+  var query = "SELECT `type`, `total`, `out` FROM equipment";
+  handleRequest(query, null, req, res, function(result) {
+    res.send(result);
   });
 });
 
